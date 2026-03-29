@@ -6,11 +6,10 @@
 
 % guardar_expediente(+ListaMaterias, +NombreArchivo)
 % Permite guardar localmente las notas/expedientes de un usuario.
-% Ejemplo: guardar_expediente(['0101', '0901', '0403'], 'expediente_fer.txt').
 guardar_expediente(Expediente, Archivo) :-
     open(Archivo, write, Stream),
     write(Stream, Expediente),
-    write(Stream, '.'), % En Prolog, todo término debe terminar con un punto para poder ser leído después.
+    write(Stream, '.'),
     close(Stream).
 
 % cargar_expediente(+NombreArchivo, -ListaMaterias)
@@ -18,7 +17,7 @@ guardar_expediente(Expediente, Archivo) :-
 cargar_expediente(Archivo, Expediente) :-
     exists_file(Archivo),
     open(Archivo, read, Stream),
-    read(Stream, Expediente), % Lee la lista directamente desde el archivo de texto
+    read(Stream, Expediente),
     close(Stream).
 
 % Si el archivo no existe (usuario nuevo), devolverá una lista vacía de materias aprobadas.
@@ -30,22 +29,43 @@ cargar_expediente(Archivo, []) :-
 % ========================================================
 
 % cumple_requisito(+Requisito, +Expediente)
-% Verifica si el prerequisito exigido ya se encuentra en el perfil del estudiante.
-cumple_requisito(ninguno, _). % Si la materia base dice 'ninguno', pasa automáticamente.
+cumple_requisito(ninguno, _).
 
 cumple_requisito(Requisito, Expediente) :-
     Requisito \== ninguno,
-    member(Requisito, Expediente). % Revisa si el código está dentro de la lista de materias aprobadas.
+    member(Requisito, Expediente).
 
 % habilitado_para_matricular(+Carrera, +CodigoMateria, +ExpedienteActual)
-% El corazón del Simulador de Matrícula: decide si un alumno puede cursar 'X' materia.
+% Decide si un alumno puede cursar 'X' materia.
 habilitado_para_matricular(Carrera, Codigo, Expediente) :-
-    % 1. Extraemos qué nos pide la materia desde la base de datos (ignora otros datos inútiles con guion bajo _)
     materia(Carrera, Codigo, _, _, _, _, Prerreq, Preced),
-    
-    % 2. La regla matemática falla si tú YA aprobasete la clase (no la puedes repetir).
     \+ member(Codigo, Expediente), 
-    
-    % 3. Comparamos que cumplas ambos requisitos.
     cumple_requisito(Prerreq, Expediente),
     cumple_requisito(Preced, Expediente).
+
+% ========================================================
+% BLOQUE 3: RUTAS CRÍTICAS (RECURSIVIDAD Y ÁRBOLES)
+% ========================================================
+
+% 3.1 Ruta Hacia Atrás: ¿Qué materias me bloquean llegar hasta aquí?
+% Caso base: Si el código es 'ninguno' o vacío, la ruta termina aquí (lista vacía).
+ruta_critica_atras(_, ninguno, []) :- !.
+
+% Caso recursivo: Si hay materia, busca recursivamente los requisitos de sus requisitos.
+ruta_critica_atras(Carrera, Codigo, [Codigo | Dependencias_Restantes]) :-
+    materia(Carrera, Codigo, _, _, _, _, Prerreq, Preced),
+    ruta_critica_atras(Carrera, Prerreq, RutaPrerreq),
+    ruta_critica_atras(Carrera, Preced, RutaPreced),
+    % Unimos las dos sub-ramas encontradas (prerrequisitos y precedentes) en una sola lista plana
+    append(RutaPrerreq, RutaPreced, Dependencias_Restantes).
+
+% 3.2 Ruta Hacia Adelante: ¿Qué materias futuras se desbloquean si apruebo esta?
+% Busca a todas las materias que tengan a nuestro 'Codigo' como Prerrequisito O Precedente
+desbloqueos_inmediatos(Carrera, Codigo, MateriasDesbloqueadas) :-
+    findall(Futura, 
+           (materia(Carrera, Futura, _, _, _, _, Codigo, _); 
+            materia(Carrera, Futura, _, _, _, _, _, Codigo)), 
+           MateriasDesbloqueadas).
+
+% NOTA: La recursividad profunda hacia adelante requiere recorrer listas. Dejaremos esta 
+% función como "Inmediata" para no saturar los resultados, pero sentando las bases.
