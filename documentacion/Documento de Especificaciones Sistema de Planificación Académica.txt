@@ -1,0 +1,126 @@
+Documento de Especificaciones: Sistema Experto de Planificación Académica 
+1. Descripción General del Proyecto 
+El sistema es una herramienta de software basada en el paradigma de 
+programación declarativa (lógica) diseñada para automatizar la proyección y 
+gestión académica de los estudiantes. Inicialmente, el proyecto está modelado 
+con el plan de estudios 2026 de la carrera de Ingeniería en Cibernética Electrónica 
+de la Universidad Tecnológica La Salle (ULSA) en León, Nicaragua. 
+El objetivo principal es transformar el mapa curricular estático y su régimen 
+cuatrimestral en un motor de inferencia dinámico. El programa permitirá a los 
+alumnos consultar el plan de estudios, validar cadenas de prerrequisitos y 
+precedentes, y recibir recomendaciones personalizadas de matrícula, 
+especialmente en escenarios donde necesiten recuperar materias o adelantar 
+créditos, todo a través de una interfaz gráfica estructurada. 
+2. Tecnologías y Herramientas 
+• Motor Lógico y de Inferencia: SWI-Prolog. Se encargará de almacenar la 
+base de conocimientos, procesar las listas, ejecutar la recursividad y 
+realizar las validaciones lógicas. 
+• Interfaz Gráfica de Usuario (GUI): XPCE (Librería nativa de SWI-Prolog). Se 
+utilizará para construir el entorno visual interactivo, separando 
+estrictamente el código lógico del diseño de las ventanas. 
+3. Requisitos Técnicos y Fundamentos de PROLOG 
+El núcleo del sistema demostrará el dominio de los siguientes conceptos de 
+programación lógica: 
+• Base de Conocimientos (Hechos): El plan de estudios se traducirá a una 
+base de datos de hechos en PROLOG. Cada asignatura tendrá una 
+estructura estandarizada que almacenará sus atributos clave: identificador 
+de carrera, código, nombre, año, cuatrimestre , horas totales (HT) , créditos 
+(TC), prerrequisitos y precedentes. 
+• Reglas de Inferencia (Lógica Condicional): Se programarán reglas que 
+evalúen el estado del estudiante frente a las exigencias de la universidad. 
+Por ejemplo, una regla habilitado_para_matricular(Materia, Expediente) 
+verificará si el estudiante tiene en su expediente el curso previo necesario. 
+• Recursividad: Esencial para calcular la "Ruta Crítica" . Las reglas se 
+llamarán a sí mismas para recorrer el árbol de dependencias de una 
+materia de forma indefinida hasta llegar a una asignatura base que tenga 
+como prerrequisito "Ninguno". 
+• Manejo de Listas: El historial del estudiante (su expediente) será 
+procesado como una lista dinámica en PROLOG. El sistema utilizará 
+operaciones de listas (pertenencia, adición, sustracción) para comparar lo 
+que el alumno ya aprobó con lo que ofrece la malla curricular. 
+• Manejo de Ficheros (Persistencia de Datos): Implementación de 
+funciones de entrada y salida (I/O). El programa leerá y escribirá en archivos 
+de texto (.txt o .pl) para guardar la lista de materias aprobadas de un 
+estudiante y poder cargarla en sesiones futuras, evitando que los datos se 
+pierdan al cerrar la aplicación. 
+4. Funcionalidades Detalladas del Estudiante (Usuario Final) 
+El sistema proporcionará las siguientes herramientas interactivas, pensadas para 
+resolver problemas reales de planificación estudiantil: 
+• Consulta Estructural y Detallada del Plan: 
+o El estudiante podrá seleccionar cualquier materia del plan de 
+estudios y ver una ficha técnica completa que incluye el código, el 
+cuatrimestre exacto en el que se imparte, las horas totales y los 
+créditos. 
+• Trazado de Ruta Crítica (Árbol de Dependencias): 
+o Hacia atrás: Si el estudiante consulta "Inteligencia Artificial" , el 
+sistema trazará la ruta regresiva mostrando que necesita aprobar 
+primero "Programación Lógica" , la cual a su vez requiere "Teoría 
+Computacional". 
+o Hacia adelante: Si consulta una materia de base, el sistema le 
+mostrará todas las asignaturas futuras que se "desbloquean" al 
+aprobarla. 
+• Gestión de Expediente Académico: 
+o Un módulo donde el alumno marca interactivamente los cursos que 
+ya ha aprobado. Este estado se consolida en su perfil personal y 
+puede ser guardado localmente a través de la funcionalidad de 
+ficheros. 
+• Simulador de Matrícula (Filtro Inteligente): 
+o Al activar esta función, el sistema cruza la lista de materias 
+aprobadas con la base de conocimientos. El resultado es una vista 
+limpia que muestra únicamente los cursos que el estudiante está 
+legalmente habilitado para inscribir en el próximo periodo, 
+ocultando aquellos bloqueados por falta de requisitos. 
+• Recomendador Inteligente para Rutas de Recuperación: 
+o Diseñado para alumnos que han reprobado cursos y deciden no 
+llevarlos inmediatamente. 
+o El motor lógico analiza el expediente y sugiere qué materias 
+posteriores adelantar. 
+o Prioriza cursos que no tienen prerrequisitos o cuyos prerrequisitos 
+ya fueron aprobados. 
+o Detecta "cuellos de botella": Identifica cuáles de las materias 
+reprobadas bloquean la mayor cantidad de cursos a futuro y las 
+etiqueta con "Prioridad Alta" para incentivar su pronta recuperación. 
+• Calculadora de Progreso y Créditos: 
+o Iterando sobre la lista de materias aprobadas, el sistema suma los 
+créditos acumulados y le muestra al alumno cuánto le falta para 
+alcanzar los 195 créditos totales exigidos por la carrera. 
+5. Diseño de Interfaz Gráfica (XPCE) 
+Para asegurar que la herramienta sea intuitiva y agradable de usar, el entorno 
+visual se construirá bajo principios de diseño estrictamente profesionales y 
+minimalistas: 
+• Estética Minimalista: La interfaz priorizará la limpieza visual. Se utilizará 
+un espaciado amplio (padding) entre los elementos, alineación geométrica 
+de las columnas de datos y se evitará la saturación de botones. Un lienzo 
+limpio permite que la información académica destaque. 
+• Navegación por Componentes Nativos: 
+o List Browsers (Listas Desplegables): En lugar de obligar al usuario 
+a escribir códigos numéricos, se utilizarán listas interactivas donde 
+el estudiante simplemente hace clic en el nombre de la materia. 
+o Paneles de Solo Lectura: Las consultas mostrarán sus resultados 
+en áreas de texto estructuradas y tabuladas, separando visualmente 
+las asignaturas aprobadas de las sugeridas. 
+• Feedback Visual y Prevención de Errores: 
+o Implementación de cuadros de diálogo (Dialog Boxes) que actúan 
+como alertas. Si el estudiante intenta simular la matrícula de una 
+asignatura sin cumplir sus precedentes, el sistema lanzará un aviso 
+claro indicando exactamente qué curso le falta aprobar. 
+6. Arquitectura y Escalabilidad Futura (Soporte Multicarrera) 
+El código fuente estará diseñado para garantizar que el sistema pueda crecer y 
+albergar toda la oferta académica de la universidad sin necesidad de reestructurar 
+la lógica base: 
+• Abstracción mediante Identificadores: Todos los hechos en la base de 
+datos incluirán un identificador dinámico de carrera como primer 
+argumento (por ejemplo, ice para Cibernética Electrónica). 
+• Reglas Universales: Las reglas de recursividad y validación recibirán este 
+identificador como parámetro, iterando únicamente sobre los hechos que 
+correspondan a la carrera seleccionada. 
+• Modularidad de Archivos: La base de conocimientos de cada plan de 
+estudios se guardará en un archivo independiente (ej. plan_ice_2026.pl). Si 
+la universidad desea agregar la carrera de Administración, simplemente se 
+creará un archivo plan_admin_2026.pl con la misma estructura de hechos. 
+• Selector Dinámico en Interfaz: La pantalla de inicio de XPCE contará con 
+un menú desplegable para "Seleccionar Plan de Estudios" . Al elegir una 
+opción, el sistema cargará en memoria únicamente el archivo .pl 
+correspondiente y alimentará al motor lógico con ese identificador, 
+adaptando toda la aplicación a la nueva carrera al instante. 
+ 
