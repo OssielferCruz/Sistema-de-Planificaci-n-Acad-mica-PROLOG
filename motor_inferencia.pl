@@ -20,12 +20,12 @@ cargar_expediente(Archivo, Expediente) :-
     read(Stream, Expediente),
     close(Stream).
 
-% Si el archivo no existe (usuario nuevo), devolverá una lista vacía de materias aprobadas.
+% Si el archivo no existe (usuario nuevo), devolvera una lista vacia de materias aprobadas.
 cargar_expediente(Archivo, []) :-
     \+ exists_file(Archivo). 
 
 % ========================================================
-% BLOQUE 2: VALIDACIÓN DE MATRÍCULA
+% BLOQUE 2: VALIDACION DE MATRICULA
 % ========================================================
 
 % cumple_requisito(+Requisito, +Expediente)
@@ -44,11 +44,11 @@ habilitado_para_matricular(Carrera, Codigo, Expediente) :-
     cumple_requisito(Preced, Expediente).
 
 % ========================================================
-% BLOQUE 3: RUTAS CRÍTICAS (RECURSIVIDAD Y ÁRBOLES)
+% BLOQUE 3: RUTAS CRITICAS (RECURSIVIDAD Y ARBOLES)
 % ========================================================
 
-% 3.1 Ruta Hacia Atrás: ¿Qué materias me bloquean llegar hasta aquí?
-% Caso base: Si el código es 'ninguno' o vacío, la ruta termina aquí (lista vacía).
+% 3.1 Ruta Hacia Atras: ¿Que materias me bloquean llegar hasta aqui?
+% Caso base: Si el codigo es 'ninguno' o vacio, la ruta termina aqui (lista vacia).
 ruta_critica_atras(_, ninguno, []) :- !.
 
 % Caso recursivo: Si hay materia, busca recursivamente los requisitos de sus requisitos.
@@ -59,7 +59,7 @@ ruta_critica_atras(Carrera, Codigo, [Codigo | Dependencias_Restantes]) :-
     % Unimos las dos sub-ramas encontradas (prerrequisitos y precedentes) en una sola lista plana
     append(RutaPrerreq, RutaPreced, Dependencias_Restantes).
 
-% 3.2 Ruta Hacia Adelante: ¿Qué materias futuras se desbloquean si apruebo esta?
+% 3.2 Ruta Hacia Adelante: ¿Que materias futuras se desbloquean si apruebo esta?
 % Busca a todas las materias que tengan a nuestro 'Codigo' como Prerrequisito O Precedente
 desbloqueos_inmediatos(Carrera, Codigo, MateriasDesbloqueadas) :-
     findall(Futura, 
@@ -68,15 +68,15 @@ desbloqueos_inmediatos(Carrera, Codigo, MateriasDesbloqueadas) :-
            MateriasDesbloqueadas).
 
 % NOTA: La recursividad profunda hacia adelante requiere recorrer listas. Dejaremos esta 
-% función como "Inmediata" para no saturar los resultados, pero sentando las bases.
+% funcion como "Inmediata" para no saturar los resultados, pero sentando las bases.
 
 % ========================================================
-% BLOQUE 4: CALCULADORA DE CRÉDITOS Y PROGRESO
+% BLOQUE 4: CALCULADORA DE CREDITOS Y PROGRESO
 % ========================================================
 
 % calcular_creditos(+Carrera, +ListaMateriasAprobadas, -TotalCreditos)
-% Itera sobre la lista de materias aprobadas y suma sus créditos.
-calcular_creditos(_, [], 0). % Caso base: Lista vacía significa 0 créditos.
+% Itera sobre la lista de materias aprobadas y suma sus creditos.
+calcular_creditos(_, [], 0). % Caso base: Lista vacia significa 0 creditos.
 
 calcular_creditos(Carrera, [Codigo | Restantes], Total) :-
     materia(Carrera, Codigo, _, _, _, CreditosMateria, _, _),
@@ -88,14 +88,14 @@ calcular_creditos(Carrera, [Codigo | Restantes], Total) :-
 % ========================================================
 
 % peso_bloqueo(+Carrera, +CodigoMateria, -CantidadBloqueadas)
-% Calcula a cuántas materias "arrastra" o afecta directamente esta clase si no se aprueba rápido.
+% Calcula a cuantas materias "arrastra" o afecta directamente esta clase si no se aprueba rapido.
 peso_bloqueo(Carrera, Codigo, Peso) :-
     desbloqueos_inmediatos(Carrera, Codigo, ListaAfectadas),
     length(ListaAfectadas, Peso).
 
 % recomendar_recuperacion(+Carrera, +MateriaReprobada, -Prioridad)
-% Inteligencia artificial básica: Etiqueta como 'Prioridad Alta' si bloquea a 2 o más materias a futuro.
-recomendar_recuperacion(Carrera, Codigo, 'Prioridad Alta (¡Cuello de Botella!)') :-
+% Inteligencia artificial basica: Etiqueta como 'Prioridad Alta' si bloquea a 2 o mas materias a futuro.
+recomendar_recuperacion(Carrera, Codigo, 'Prioridad Alta (Cuello de Botella!)') :-
     peso_bloqueo(Carrera, Codigo, Peso),
     Peso >= 2, !.
 
