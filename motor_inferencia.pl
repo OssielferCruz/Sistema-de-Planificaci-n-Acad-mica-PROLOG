@@ -69,3 +69,34 @@ desbloqueos_inmediatos(Carrera, Codigo, MateriasDesbloqueadas) :-
 
 % NOTA: La recursividad profunda hacia adelante requiere recorrer listas. Dejaremos esta 
 % función como "Inmediata" para no saturar los resultados, pero sentando las bases.
+
+% ========================================================
+% BLOQUE 4: CALCULADORA DE CRÉDITOS Y PROGRESO
+% ========================================================
+
+% calcular_creditos(+Carrera, +ListaMateriasAprobadas, -TotalCreditos)
+% Itera sobre la lista de materias aprobadas y suma sus créditos.
+calcular_creditos(_, [], 0). % Caso base: Lista vacía significa 0 créditos.
+
+calcular_creditos(Carrera, [Codigo | Restantes], Total) :-
+    materia(Carrera, Codigo, _, _, _, CreditosMateria, _, _),
+    calcular_creditos(Carrera, Restantes, TotalRestantes),
+    Total is CreditosMateria + TotalRestantes. % Sumatoria recursiva
+
+% ========================================================
+% BLOQUE 5: RECOMENDADOR INTELIGENTE (CUELLOS DE BOTELLA)
+% ========================================================
+
+% peso_bloqueo(+Carrera, +CodigoMateria, -CantidadBloqueadas)
+% Calcula a cuántas materias "arrastra" o afecta directamente esta clase si no se aprueba rápido.
+peso_bloqueo(Carrera, Codigo, Peso) :-
+    desbloqueos_inmediatos(Carrera, Codigo, ListaAfectadas),
+    length(ListaAfectadas, Peso).
+
+% recomendar_recuperacion(+Carrera, +MateriaReprobada, -Prioridad)
+% Inteligencia artificial básica: Etiqueta como 'Prioridad Alta' si bloquea a 2 o más materias a futuro.
+recomendar_recuperacion(Carrera, Codigo, 'Prioridad Alta (¡Cuello de Botella!)') :-
+    peso_bloqueo(Carrera, Codigo, Peso),
+    Peso >= 2, !.
+
+recomendar_recuperacion(_, _, 'Prioridad Normal'). % Si bloquea a 1 o 0 materias, es normal.
