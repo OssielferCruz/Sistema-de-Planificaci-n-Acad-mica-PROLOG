@@ -9,7 +9,7 @@
 % Permite guardar localmente las notas/expedientes de un usuario.
 guardar_expediente(Expediente, Archivo) :-
     open(Archivo, write, Stream),
-    write(Stream, Expediente),
+    writeq(Stream, Expediente),
     write(Stream, '.'),
     close(Stream).
 

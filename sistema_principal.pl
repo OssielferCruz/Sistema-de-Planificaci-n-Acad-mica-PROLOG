@@ -35,7 +35,6 @@ iniciar_sistema :-
     % Crear ventana principal simple
     new(@v_main, dialog('Planificador Academico ICE 2026')),
     send(@v_main, size, size(1100, 720)),
-    send(@v_main, background, colour(white)),
     
     % Titulo principal
     new(LTitle, label(titulo, 'Planificador Academico ICE 2026')),
@@ -49,6 +48,11 @@ iniciar_sistema :-
     new(GSearch, dialog_group('')), send(GSearch, pen, 0),
     new(@txt_buscar, text_item('Buscar Curso:', '')),
     send(@txt_buscar, message, message(@prolog, acc_buscar_catalogo, @receiver?selection)),
+    
+    % Fija explicitamente colores fuertes para que resalte la letra
+    send(@txt_buscar, colour, colour(black)),
+    send(@txt_buscar, value_font, font(helvetica, bold, 12)),
+    
     send(GSearch, append, @txt_buscar),
     send(GSearch, append, button('Limpiar Busqueda', message(@prolog, acc_buscar_limpiar)), right),
     send(@v_main, append, GSearch),
@@ -360,29 +364,87 @@ acc_ver_progreso :-
     mostrar_resultado(T).
 
 acc_guardar :-
-    expediente_actual(Exp),
-    ( get(@finder, file, save, Archivo), Archivo \== @nil ->
-        guardar_expediente(Exp, Archivo),
-        format(atom(T), '[GUARDADO] Expediente guardado exitosamente en:\n~w', [Archivo]),
-        mostrar_resultado(T)
+    new(D, dialog('Guardar Sesion')),
+    send(D, append, label(info, 'Escribe un nombre para el archivo de sesion:')),
+    send(D, append, new(TI, text_item('Nombre:', 'mi_expediente')), below),
+    send(D, append, button('Aceptar', and(
+        message(@prolog, acc_guardar_confirmar, TI?selection),
+        message(D, destroy)
+    )), below),
+    send(D, append, button('Cancelar', message(D, destroy)), right),
+    send(D, open_centered).
+
+acc_guardar_confirmar(NombreRaw) :-
+    get(NombreRaw, value, Nombre),
+    ( Nombre == '' ->
+        send(@display, inform, 'Debes escribir un nombre para el archivo.')
     ;
-        mostrar_resultado('[CANCELADO] Guardado cancelado por el usuario.')
+        expediente_actual(Exp),
+        atom_concat(Nombre, '.pl', Archivo),
+        guardar_expediente(Exp, Archivo),
+        format(atom(T), '[GUARDADO] Expediente guardado exitosamente como:\n~w', [Archivo]),
+        mostrar_resultado(T)
     ).
 
 acc_cargar :-
-    carrera_actual(Carrera),
-    ( get(@finder, file, open, Archivo), Archivo \== @nil ->
+    % Buscar archivos .pl en la carpeta del proyecto (sesiones guardadas)
+    expand_file_name('*.pl', Archivos),
+    exclude(acc_archivo_sistema, Archivos, Sesiones),
+    ( Sesiones == [] ->
+        send(@display, inform, 'No se encontraron sesiones guardadas en esta carpeta.')
+    ;
+        ( object(@cargar_dlg) -> send(@cargar_dlg, destroy) ; true ),
+        new(@cargar_dlg, dialog('Cargar Sesion')),
+        send(@cargar_dlg, size, size(400, 350)),
+        send(@cargar_dlg, append, label(info, 'Selecciona una sesion guardada:')),
+        ( object(@cargar_lb) -> free(@cargar_lb) ; true ),
+        new(@cargar_lb, list_browser),
+        send(@cargar_lb, size, size(45, 8)),
+        send(@cargar_lb, font, font(helvetica, roman, 12)),
+        forall(
+            member(Arch, Sesiones),
+            send(@cargar_lb, append, Arch)
+        ),
+        send(@cargar_dlg, append, @cargar_lb, below),
+        send(@cargar_dlg, append, button('Aceptar', message(@prolog, acc_cargar_confirmar)), below),
+        send(@cargar_dlg, append, button('Cancelar', message(@prolog, acc_cargar_cancelar)), right),
+        send(@cargar_dlg, open_centered)
+    ).
+
+acc_cargar_confirmar :-
+    ( object(@cargar_lb), get(@cargar_lb, selection, Sel), Sel \== @nil ->
+        get(Sel, key, Archivo),
+        carrera_actual(Carrera),
         cargar_expediente(Archivo, Leido),
-        include(acc_filtrar_cod(Carrera), Leido, Limpio),
+        maplist(normalizar_codigo, Leido, Normalizados),
+        include(acc_filtrar_cod(Carrera), Normalizados, Limpio),
         sort(Limpio, Final),
         reemplazar_expediente(Final),
         actualizar_browser_expediente,
         actualizar_estado_lbl,
-        format(atom(T), '[CARGADO] Expediente cargado en el sistema desde:\n~w', [Archivo]),
-        mostrar_resultado(T)
+        format(atom(T), '[CARGADO] Expediente cargado exitosamente desde:\n~w\nMaterias restauradas: ~w', [Archivo, Final]),
+        mostrar_resultado(T),
+        ( object(@cargar_dlg) -> send(@cargar_dlg, destroy) ; true )
     ;
-        mostrar_resultado('[CANCELADO] Carga de expediente cancelada.')
+        send(@display, inform, 'Selecciona un archivo de la lista primero.')
     ).
+
+% Convierte codigos numericos (203) a atomos de 4 digitos ('0203')
+normalizar_codigo(Cod, Atom) :-
+    ( number(Cod) ->
+        format(atom(Atom), '~`0t~d~4|', [Cod])
+    ;
+        Atom = Cod
+    ).
+
+acc_cargar_cancelar :-
+    ( object(@cargar_dlg) -> send(@cargar_dlg, destroy) ; true ).
+
+% Excluir archivos del sistema que no son sesiones
+acc_archivo_sistema(Archivo) :-
+    member(Archivo, ['sistema_principal.pl', 'motor_inferencia.pl', 'interfaz_web.pl',
+                     'test_colors.pl', 'test_layout.pl', 'test_search.pl',
+                     'test_color_box.pl']).
 
 acc_filtrar_cod(Carrera, Codigo) :-
     materia(Carrera, Codigo, _, _, _, _, _, _).
