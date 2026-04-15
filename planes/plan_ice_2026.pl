@@ -2,6 +2,9 @@
 % Formato: materia(Carrera, Codigo, Nombre, Ano, Cuatrimestre, Creditos, Prerrequisito, Precedente).
 % Utilizamos 'ninguno' cuando no existe dependencia.
 
+:- discontiguous materia/8.
+:- multifile materia/8.
+
 % --- ANO I ---
 % Cuatrimestre I
 materia(ice, '0401', 'Etica y Lasallismo', 1, 1, 2, ninguno, ninguno).

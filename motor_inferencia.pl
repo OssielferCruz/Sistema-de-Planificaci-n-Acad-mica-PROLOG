@@ -1,4 +1,11 @@
-:- ensure_loaded('plan_ice_2026.pl'). % Importar la base de conocimientos
+:- ensure_loaded('planes/plan_ice_2026.pl'). % Importar la base de conocimientos ICE
+:- ensure_loaded('planes/plan_igi_2026.pl'). % Importar la base de conocimientos IGI
+:- ensure_loaded('planes/plan_ime_2026.pl'). % Importar la base de conocimientos IME
+:- ensure_loaded('planes/plan_ims_2026.pl'). % Importar la base de conocimientos IMS
+:- ensure_loaded('planes/plan_iem_2026.pl'). % Importar la base de conocimientos IEM
+:- ensure_loaded('planes/plan_laf_2026.pl'). % Importar la base de conocimientos LAF
+:- ensure_loaded('planes/plan_lcm_2026.pl'). % Importar la base de conocimientos LCM
+:- ensure_loaded('planes/plan_iel_2026.pl'). % Importar la base de conocimientos IEL
 :- use_module(library(lists)).
 
 % ========================================================

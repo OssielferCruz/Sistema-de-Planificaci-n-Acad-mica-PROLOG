@@ -14,10 +14,12 @@
 :- dynamic expediente_actual/1.
 :- dynamic carrera_actual/1.
 :- dynamic filtro_catalogo/1.
+:- dynamic archivo_sesion_actual/1.
 
 expediente_actual([]).
 carrera_actual(ice).
 filtro_catalogo('').
+archivo_sesion_actual('').
 
 
 % =====================================================
@@ -31,21 +33,39 @@ iniciar_sistema :-
     ( object(@L_estado) -> free(@L_estado) ; true ),
     ( object(@cat_browser) -> free(@cat_browser) ; true ),
     ( object(@exp_browser) -> free(@exp_browser) ; true ),
+    ( object(@lbl_titulo) -> free(@lbl_titulo) ; true ),
 
     % Crear ventana principal simple
     new(@v_main, dialog('Planificador Academico ICE 2026')),
     send(@v_main, size, size(1100, 720)),
     
-    % Titulo principal
-    new(LTitle, label(titulo, 'Planificador Academico ICE 2026')),
-    send(LTitle, font, font(helvetica, bold, 22)),
-    send(LTitle, colour, colour(dark_green)),
-    send(@v_main, append, LTitle),
+    % Titulo principal (dinamico segun carrera)
+    nombre_carrera_lbl(TituloTxt),
+    new(@lbl_titulo, label(titulo, TituloTxt)),
+    send(@lbl_titulo, font, font(helvetica, bold, 22)),
+    send(@lbl_titulo, colour, colour(dark_green)),
+    send(@v_main, append, @lbl_titulo),
 
     % ===============================
-    % FILA 1: BUSCADOR (Top)
+    % FILA 1: SELECTOR DE CARRERA + BUSCADOR
     % ===============================
     new(GSearch, dialog_group('')), send(GSearch, pen, 0),
+
+    % Selector de carrera
+    new(MenuCarrera, menu('Carrera:', cycle)),
+    send(MenuCarrera, append, menu_item(ice, message(@prolog, acc_cambiar_carrera, ice), 'Ing. Cibernetica (ICE)')),
+    send(MenuCarrera, append, menu_item(igi, message(@prolog, acc_cambiar_carrera, igi), 'Ing. Gestion Ind. (IGI)')),
+    send(MenuCarrera, append, menu_item(ime, message(@prolog, acc_cambiar_carrera, ime), 'Ing. Mecanica (IME)')),
+    send(MenuCarrera, append, menu_item(ims, message(@prolog, acc_cambiar_carrera, ims), 'Ing. Mecatronica (IMS)')),
+    send(MenuCarrera, append, menu_item(iem, message(@prolog, acc_cambiar_carrera, iem), 'Ing. Electromedica (IEM)')),
+    send(MenuCarrera, append, menu_item(laf, message(@prolog, acc_cambiar_carrera, laf), 'Lic. Admin. Finanzas (LAF)')),
+    send(MenuCarrera, append, menu_item(lcm, message(@prolog, acc_cambiar_carrera, lcm), 'Lic. Com. Mercadeo (LCM)')),
+    send(MenuCarrera, append, menu_item(iel, message(@prolog, acc_cambiar_carrera, iel), 'Ing. Electrica (IEL)')),
+    carrera_actual(CarAct),
+    send(MenuCarrera, selection, CarAct),
+    send(GSearch, append, MenuCarrera),
+
+    % Buscador
     new(@txt_buscar, text_item('Buscar Curso:', '')),
     send(@txt_buscar, message, message(@prolog, acc_buscar_catalogo, @receiver?selection)),
     
@@ -53,7 +73,7 @@ iniciar_sistema :-
     send(@txt_buscar, colour, colour(black)),
     send(@txt_buscar, value_font, font(helvetica, bold, 12)),
     
-    send(GSearch, append, @txt_buscar),
+    send(GSearch, append, @txt_buscar, right),
     send(GSearch, append, button('Limpiar Busqueda', message(@prolog, acc_buscar_limpiar)), right),
     send(@v_main, append, GSearch),
 
@@ -108,9 +128,10 @@ iniciar_sistema :-
     new(B7, button('Quitar aprobada', message(@prolog, acc_quitar_aprobada))),
     new(B8, button('Guardar sesion', message(@prolog, acc_guardar))),
     new(B9, button('Cargar sesion', message(@prolog, acc_cargar))),
+    new(B10, button('Nueva sesion', message(@prolog, acc_nueva_sesion))),
 
     % Estilizar botones
-    send_list([B1,B2,B3,B4,B5,B6,B7,B8,B9], font, font(helvetica, bold, 10)),
+    send_list([B1,B2,B3,B4,B5,B6,B7,B8,B9,B10], font, font(helvetica, bold, 10)),
 
     % Ensamble de la Fila 1 (Horizontal)
     send(GBtn, append, B1),
@@ -124,6 +145,7 @@ iniciar_sistema :-
     send(GBtn, append, B7, right),
     send(GBtn, append, B8, right),
     send(GBtn, append, B9, right),
+    send(GBtn, append, B10, right),
 
     send(GRight, append, GBtn, below),
 
@@ -138,9 +160,11 @@ iniciar_sistema :-
     
     send(GRight, append, GInst, right),
 
-    % Ensamblar columnas a v_main
-    send(@v_main, append, GLeft, below),
-    send(@v_main, append, GRight, right),
+    % Ensamblar columnas a v_main asegurando que esten juntas horizontalmente
+    new(GContent, dialog_group('')), send(GContent, pen, 0),
+    send(GContent, append, GLeft),
+    send(GContent, append, GRight, right),
+    send(@v_main, append, GContent, below),
 
     % === ESTADO (BARRA INFERIOR) ===
     new(@L_estado, label(lbl_es, '')),
@@ -197,6 +221,40 @@ actualizar_browser_expediente :-
 % GLOBALES & UTILIDADES
 % =====================================================
 
+% Nombres legibles de carreras
+nombre_carrera_texto(ice, 'Ing. en Cibernetica Electronica (ICE)').
+nombre_carrera_texto(igi, 'Ing. en Gestion Industrial (IGI)').
+nombre_carrera_texto(ime, 'Ing. en Mecanica y Energias Renovables (IME)').
+nombre_carrera_texto(ims, 'Ing. en Mecatronica y Sistemas de Control (IMS)').
+nombre_carrera_texto(iem, 'Ing. Electromedica (IEM)').
+nombre_carrera_texto(laf, 'Lic. Administracion con Enfasis en Finanzas (LAF)').
+nombre_carrera_texto(lcm, 'Lic. Comercial con Enfasis en Mercadeo (LCM)').
+nombre_carrera_texto(iel, 'Ing. Electrica (IEL)').
+
+nombre_carrera_lbl(Txt) :-
+    carrera_actual(C),
+    nombre_carrera_texto(C, Nombre),
+    format(atom(Txt), 'Planificador Academico 2026 - ~w', [Nombre]).
+
+% Cambiar de carrera y refrescar toda la UI
+acc_cambiar_carrera(NuevaCarrera) :-
+    retractall(carrera_actual(_)),
+    asserta(carrera_actual(NuevaCarrera)),
+    retractall(expediente_actual(_)),
+    asserta(expediente_actual([])),
+    retractall(filtro_catalogo(_)),
+    asserta(filtro_catalogo('')),
+    set_archivo_sesion_actual(''),
+    ( object(@txt_buscar) -> send(@txt_buscar, selection, '') ; true ),
+    llenar_catalogo_materias,
+    actualizar_browser_expediente,
+    actualizar_estado_lbl,
+    nombre_carrera_lbl(NuevoTitulo),
+    ( object(@lbl_titulo) -> send(@lbl_titulo, selection, NuevoTitulo) ; true ),
+    nombre_carrera_texto(NuevaCarrera, NombreC),
+    format(atom(T), 'Carrera cambiada a: ~w\nEl expediente se ha reiniciado.\nSelecciona materias del catalogo.', [NombreC]),
+    mostrar_resultado(T).
+
 mostrar_resultado(Text) :-
     ( object(@editor_res) ->
         send(@editor_res, clear),
@@ -223,9 +281,29 @@ obtener_codigo_seleccionado(Browser, Codigo) :-
     get(Sel, key, KeyXPCE),
     get(KeyXPCE, value, Codigo).
 
+etiqueta_materia(Carrera, Codigo, Etiqueta) :-
+    ( materia(Carrera, Codigo, Nombre, _, _, _, _, _) ->
+        format(atom(Etiqueta), '[~w] ~w', [Codigo, Nombre])
+    ;
+        format(atom(Etiqueta), '[~w]', [Codigo])
+    ).
+
+fmt_codigos_con_nombre(_, [], '').
+fmt_codigos_con_nombre(Carrera, Codigos, Texto) :-
+    findall(Etiqueta,
+        ( member(Codigo, Codigos),
+          etiqueta_materia(Carrera, Codigo, Etiqueta)
+        ),
+        Etiquetas),
+    atomic_list_concat(Etiquetas, ', ', Texto).
+
 reemplazar_expediente(L) :-
     retractall(expediente_actual(_)),
     asserta(expediente_actual(L)).
+
+set_archivo_sesion_actual(Archivo) :-
+    retractall(archivo_sesion_actual(_)),
+    asserta(archivo_sesion_actual(Archivo)).
 
 fmt_materias(_, [], '  (Ninguna)\n').
 fmt_materias(Carrera, Lista, R) :-
@@ -241,7 +319,7 @@ fmt_bloqueadas(Carrera, Lista, R) :-
     findall(L,
         ( member(C-Fs, Lista),
           materia(Carrera, C, N, _, _, _, _, _),
-          atomic_list_concat(Fs, ', ', StFs),
+                    fmt_codigos_con_nombre(Carrera, Fs, StFs),
           format(atom(L), '  * [~w] ~w  (Te falta: ~w)\n', [C, N, StFs])
         ), Lineas),
     atomic_list_concat(Lineas, '', R).
@@ -263,7 +341,7 @@ acc_verificar :-
                 format(atom(T), '[OK] Puedes matricular ~w.\nCumples todos los requisitos necesarios.', [Codigo]),
                 mostrar_resultado(T)
             ;
-                atomic_list_concat(Faltantes, ', ', StrFs),
+                fmt_codigos_con_nombre(Carrera, Faltantes, StrFs),
                 format(atom(T), '[DENEGADO] No puedes cursar ~w aun.\n\nDebes aprobar primero: ~w', [Codigo, StrFs]),
                 mostrar_resultado(T)
             )
@@ -363,6 +441,23 @@ acc_ver_progreso :-
         [N, Aprobados, Restantes, Total]),
     mostrar_resultado(T).
 
+acc_nueva_sesion :-
+    reemplazar_expediente([]),
+    set_archivo_sesion_actual(''),
+    actualizar_browser_expediente,
+    actualizar_estado_lbl,
+    mostrar_resultado('[NUEVA SESION] Se inicio una sesion en blanco.\n\nYa puedes marcar materias aprobadas, cargar una sesion existente o guardar esta nueva sesion con otro nombre.').
+
+acc_guardar :-
+    archivo_sesion_actual(ArchivoActual),
+    ArchivoActual \== '',
+    !,
+    carrera_actual(Carrera),
+    expediente_actual(Exp),
+    guardar_sesion_xpce(Carrera, Exp, ArchivoActual),
+    format(atom(T), '[GUARDADO] Sesion actual sobrescrita exitosamente en:\n~w\nCarrera asociada: ~w', [ArchivoActual, Carrera]),
+    mostrar_resultado(T).
+
 acc_guardar :-
     new(D, dialog('Guardar Sesion')),
     send(D, append, label(info, 'Escribe un nombre para el archivo de sesion:')),
@@ -379,19 +474,20 @@ acc_guardar_confirmar(NombreRaw) :-
     ( Nombre == '' ->
         send(@display, inform, 'Debes escribir un nombre para el archivo.')
     ;
+        carrera_actual(Carrera),
         expediente_actual(Exp),
-        atom_concat(Nombre, '.pl', Archivo),
-        guardar_expediente(Exp, Archivo),
-        format(atom(T), '[GUARDADO] Expediente guardado exitosamente como:\n~w', [Archivo]),
+        atom_concat(Nombre, '.sesion.pl', Archivo),
+        guardar_sesion_xpce(Carrera, Exp, Archivo),
+        set_archivo_sesion_actual(Archivo),
+        format(atom(T), '[GUARDADO] Sesion guardada exitosamente como:\n~w\nCarrera asociada: ~w', [Archivo, Carrera]),
         mostrar_resultado(T)
     ).
 
 acc_cargar :-
-    % Buscar archivos .pl en la carpeta del proyecto (sesiones guardadas)
-    expand_file_name('*.pl', Archivos),
-    exclude(acc_archivo_sistema, Archivos, Sesiones),
+    % Buscar solo archivos de sesion de XPCE
+    expand_file_name('*.sesion.pl', Sesiones),
     ( Sesiones == [] ->
-        send(@display, inform, 'No se encontraron sesiones guardadas en esta carpeta.')
+        send(@display, inform, 'No se encontraron sesiones XPCE (*.sesion.pl) en esta carpeta.')
     ;
         ( object(@cargar_dlg) -> send(@cargar_dlg, destroy) ; true ),
         new(@cargar_dlg, dialog('Cargar Sesion')),
@@ -416,18 +512,41 @@ acc_cargar_confirmar :-
         get(Sel, key, Archivo),
         carrera_actual(Carrera),
         cargar_expediente(Archivo, Leido),
-        maplist(normalizar_codigo, Leido, Normalizados),
-        include(acc_filtrar_cod(Carrera), Normalizados, Limpio),
-        sort(Limpio, Final),
-        reemplazar_expediente(Final),
-        actualizar_browser_expediente,
-        actualizar_estado_lbl,
-        format(atom(T), '[CARGADO] Expediente cargado exitosamente desde:\n~w\nMaterias restauradas: ~w', [Archivo, Final]),
-        mostrar_resultado(T),
-        ( object(@cargar_dlg) -> send(@cargar_dlg, destroy) ; true )
+        ( Leido = sesion_xpce(CarreraArchivo, ListaLeida) ->
+            ( CarreraArchivo == Carrera ->
+                maplist(normalizar_codigo, ListaLeida, Normalizados),
+                include(acc_filtrar_cod(Carrera), Normalizados, Limpio),
+                sort(Limpio, Final),
+                reemplazar_expediente(Final),
+                set_archivo_sesion_actual(Archivo),
+                actualizar_browser_expediente,
+                actualizar_estado_lbl,
+                format(atom(T), '[CARGADO] Sesion restaurada desde:\n~w\nCarrera validada: ~w\nMaterias restauradas: ~w', [Archivo, Carrera, Final]),
+                mostrar_resultado(T),
+                ( object(@cargar_dlg) -> send(@cargar_dlg, destroy) ; true )
+            ;
+                format(atom(T), '[DENEGADO] El archivo pertenece a la carrera ~w, pero tu carrera actual es ~w.\n\nCambia la carrera activa o carga un archivo compatible.', [CarreraArchivo, Carrera]),
+                mostrar_resultado(T),
+                send(@display, inform, 'La sesion seleccionada corresponde a otra carrera.')
+            )
+        ; Leido = [_|_] ->
+            T = '[DENEGADO] El archivo no tiene identificador de carrera (formato antiguo).\n\nPor seguridad no se puede cargar porque no se puede validar compatibilidad.',
+            mostrar_resultado(T),
+            send(@display, inform, 'Archivo de sesion antiguo sin identificador de carrera.')
+        ;
+            T = '[ERROR] El archivo de sesion tiene un formato invalido o esta corrupto.',
+            mostrar_resultado(T),
+            send(@display, inform, 'No se pudo leer el archivo de sesion seleccionado.')
+        )
     ;
         send(@display, inform, 'Selecciona un archivo de la lista primero.')
     ).
+
+guardar_sesion_xpce(Carrera, Expediente, Archivo) :-
+    open(Archivo, write, Stream),
+    writeq(Stream, sesion_xpce(Carrera, Expediente)),
+    write(Stream, '.'),
+    close(Stream).
 
 % Convierte codigos numericos (203) a atomos de 4 digitos ('0203')
 normalizar_codigo(Cod, Atom) :-
@@ -439,12 +558,6 @@ normalizar_codigo(Cod, Atom) :-
 
 acc_cargar_cancelar :-
     ( object(@cargar_dlg) -> send(@cargar_dlg, destroy) ; true ).
-
-% Excluir archivos del sistema que no son sesiones
-acc_archivo_sistema(Archivo) :-
-    member(Archivo, ['sistema_principal.pl', 'motor_inferencia.pl', 'interfaz_web.pl',
-                     'test_colors.pl', 'test_layout.pl', 'test_search.pl',
-                     'test_color_box.pl']).
 
 acc_filtrar_cod(Carrera, Codigo) :-
     materia(Carrera, Codigo, _, _, _, _, _, _).
